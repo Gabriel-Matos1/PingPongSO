@@ -42,6 +42,17 @@ struct task_t
     struct task_t *parente;
     int prioridade;
     int prioridade_dinamica;
+    int quantum;
+    unsigned int tipo_user_ou_sistema; // usuario(1) e sistema(0)
+    unsigned int tempo_criacao;
+    unsigned int tempo_processamento;
+    unsigned int ativacoes;
+    unsigned int tempo_finalizacao;
+    int exit_code;
+    unsigned int tempo_temp_cpu;
+    struct task_t **tasks_esperando;
+    unsigned int qtde_tasks_esperando;
+    unsigned int tamanho_fila_tasks_esperando;
     // ...             // demais informações, a completar
 };
 
