@@ -23,6 +23,7 @@ extern struct task_t *task_atual;
 extern struct queue_t* fila_prontas;
 extern struct queue_t* fila_suspensas;
 
+//plantas que vamos passar a ensinar os GIS a atender: Palmela, Pune e Bentley.  
 
 typedef struct queue_t {
     int iterador;
@@ -43,16 +44,19 @@ struct task_t
     int prioridade;
     int prioridade_dinamica;
     int quantum;
-    unsigned int tipo_user_ou_sistema; // usuario(1) e sistema(0)
-    unsigned int tempo_criacao;
-    unsigned int tempo_processamento;
-    unsigned int ativacoes;
-    unsigned int tempo_finalizacao;
+     int tipo_user_ou_sistema; // usuario(1) e sistema(0)
+     int tempo_criacao;
+     int tempo_processamento;
+     int ativacoes;
+     int tempo_finalizacao;
     int exit_code;
-    unsigned int tempo_temp_cpu;
+     int tempo_temp_cpu;
     struct task_t **tasks_esperando;
-    unsigned int qtde_tasks_esperando;
-    unsigned int tamanho_fila_tasks_esperando;
+    int qtde_tasks_esperando;
+     int tamanho_fila_tasks_esperando;
+     int dormindo; // sim, por tempo determinado(-1) else  suspensa sem prazo especifico(0)
+     int acordar_quando;
+     int semaforo_res;
     // ...             // demais informações, a completar
 };
 

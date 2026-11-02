@@ -13,13 +13,11 @@
 #include "dispatcher.h"
 #include "task.h"
 #include "tcb.h"
-#include "queue.h"
 #include "scheduler.h"
 #include "time.h"
-#include <stdlib.h>
+#include "lib/pplibc.h"
 struct queue_t *fila_prontas;
 struct queue_t *fila_suspensas;
-
 //!=================================================================================
 
 /*/
@@ -51,6 +49,17 @@ void dispatcher_term(){
 
 //!=================================================================================
 
+void task_sleep(int t){
+    if(t<=0){
+        return;
+    }
+
+    task_atual->dormindo = -1;
+    task_atual->acordar_quando = time() + t;
+    task_suspend(fila_suspensas);
+
+}
+//!=================================================================================
 
 // transfere a CPU da tarefa atual para outra tarefa; se task_id == 0, 
 // transfere para o núcleo. Ignora sem erro se "task" já tiver terminado.
@@ -59,29 +68,27 @@ int task_switch(struct task_t *task)
 {
     struct task_t *anterior = task_atual;
 
-    if (task == NULL)
+    if (task == NULL){
         task = &task_kernel;
-    else if (task->status == TASK_FINALIZADA)
+    }else if (task->status == TASK_FINALIZADA){
         return NOERROR;
-
+    }   
+    
     unsigned int agora = time();
 
-    // Contabiliza o tempo de CPU de quem está deixando a CPU.
     anterior->tempo_processamento += agora - anterior->tempo_temp_cpu;
 
-    // Prepara a tarefa que vai receber a CPU.
     task->status = TASK_EXECUTANDO;
     task->tempo_temp_cpu = agora;
 
-    // Conta cada vez que o núcleo recebe a CPU.
-    if (task == &task_kernel)
+    if (task == &task_kernel){
         task_kernel.ativacoes++;
-
+    }   
+    
     task_atual = task;
 
     return ctx_switch(&anterior->context, &task->context);
 }
-
 //!=================================================================================
 
 // executa a tarefa indicada: retira-a da fila de prontas, muda seu status
@@ -89,13 +96,37 @@ int task_switch(struct task_t *task)
 void task_run(struct task_t *task){
     queue_del(fila_prontas, task);
     task->ativacoes++;
-    task->tempo_temp_cpu = time();
-    task->status = TASK_EXECUTANDO;
+
     task->quantum = QUANTUM;
     int result = task_switch(task);
     if(result <0){
-        exit(-1);
+        return;
     }
+}
+
+//!=================================================================================
+
+void verificar_tasks_dormindo(){
+    int temp_atual = time();
+            struct task_t *temp;
+            int i = 0;
+            while (i < fila_suspensas->size) {
+                
+                temp = fila_suspensas->items[i];
+                if(temp->dormindo == -1 &&  temp_atual >= temp->acordar_quando){
+                    task_awake(temp);
+                } else {
+                    i++;
+                }
+            }
+}
+
+//!=================================================================================
+
+
+void imprimir_task_finalizada(struct task_t *task){
+    //PPOS: task   5 (ping), 13833 ms run,  2772 ms cpu,   278 acts, exit code   0
+    printk("PPOS: task %d (%s), %d ms run, %d ms cpu, %d acts, exit code %d\n",task->id,task->name,task->tempo_finalizacao,task->tempo_processamento,task->ativacoes,task->exit_code);
 }
 
 //!=================================================================================
@@ -107,9 +138,15 @@ void  dispatcher(){
     struct task_t *task_user;
 
     task_user = task_create("user_main", user_main, NULL);
+ //   int count= 0;
 
-    while ( fila_prontas->size > 0 ){
+    while ( fila_prontas->size > 0 || fila_suspensas->size >0 ){
+        verificar_tasks_dormindo();
+        if (fila_prontas->size == 0) {
+            continue;
+        }
         struct task_t *proximo = scheduler(fila_prontas);      
+    
         if(proximo != NULL){
             task_run(proximo);
             switch (proximo->status){
@@ -117,18 +154,11 @@ void  dispatcher(){
             case TASK_PRONTA:
                 break;
             case TASK_EXECUTANDO:
-                continue;
+                break;;
             
             case TASK_FINALIZADA:
-            //PPOS: task   5 (ping), 13833 ms run,  2772 ms cpu,   278 acts, exit code   0
-           printk("PPOS: task %3d (%s), %u ms run, %u ms cpu, %4u acts, exit code %3d\n",
-       proximo->id,
-       proximo->name,
-       proximo->tempo_finalizacao,
-       proximo->tempo_processamento,
-       proximo->ativacoes,
-       proximo->exit_code);
-       break;
+                imprimir_task_finalizada(proximo);
+                break;
             case TASK_CRIADA:
                 
                 break;
@@ -141,6 +171,12 @@ void  dispatcher(){
                 break;
             }
         }
+    //     count= time();
+  //      if(count % 100 == 0){
+            
+//        }
+
+
     }
     task_destroy(task_user);
 
@@ -150,13 +186,7 @@ void  dispatcher(){
 
     task_kernel.exit_code = 0;
 
-    printk("PPOS: task %3d (%s), %u ms run, %u ms cpu, %4u acts, exit code %3d\n",
-        task_kernel.id,
-        task_kernel.name,
-        task_kernel.tempo_finalizacao,
-        task_kernel.tempo_processamento,
-        task_kernel.ativacoes,
-        task_kernel.exit_code);
+    imprimir_task_finalizada(&task_kernel);
 }
 
 //!=================================================================================
@@ -183,6 +213,8 @@ void task_awake(struct task_t *task){
     
     queue_del(fila_suspensas, task);
     task->status = TASK_PRONTA;
+    task->acordar_quando=0;
+    task->dormindo=0;
     queue_add(fila_prontas, task);
     return;
 }

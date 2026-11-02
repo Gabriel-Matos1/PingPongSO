@@ -35,7 +35,9 @@ void task_init()
     task_kernel.tempo_temp_cpu = time();
     task_kernel.ativacoes = 1;
     task_kernel.exit_code = 0;
-
+    task_kernel.acordar_quando =0;
+    task_kernel.dormindo=0;
+    
     px_id = 1;
     task_atual = &task_kernel;
 }
@@ -55,13 +57,11 @@ void task_term(){
 // Retorno: ptr para a tarefa ou NULL se houver erro.
 struct task_t *task_create(char *name, void (*entry)(void *), void *arg)
 {
-    if (entry == NULL)
-        return NULL;
+    if (entry == NULL) return NULL;
 
     struct task_t *task = malloc(sizeof(struct task_t));
 
-    if (task == NULL)
-        return NULL;
+    if (task == NULL) return NULL;
 
     task->name = name;
     task->tipo_user_ou_sistema = 1;
@@ -79,6 +79,8 @@ struct task_t *task_create(char *name, void (*entry)(void *), void *arg)
     task->tempo_temp_cpu = 0;
     task->ativacoes = 0;
     task->exit_code = 0;
+    task->dormindo =0;
+    task->acordar_quando =0;
 
     task->qtde_tasks_esperando = 0;
     task->tamanho_fila_tasks_esperando = 10;
@@ -98,13 +100,7 @@ struct task_t *task_create(char *name, void (*entry)(void *), void *arg)
         return NULL;
     }
 
-    int resultado_ctx = ctx_create(
-        &task->context,
-        entry,
-        arg,
-        task->context.stack,
-        task->context.size
-    );
+    int resultado_ctx = ctx_create(&task->context,entry,arg,task->context.stack,task->context.size);
 
     if (resultado_ctx == ERROR) {
         free(task->context.stack);
@@ -118,6 +114,7 @@ struct task_t *task_create(char *name, void (*entry)(void *), void *arg)
 
     return task;
 }
+
 //!=================================================================================
 
 
@@ -215,22 +212,16 @@ int task_wait(struct task_t *task)
     if (task->status == TASK_FINALIZADA)
         return task->exit_code;
 
-    if (task->qtde_tasks_esperando >=
-        task->tamanho_fila_tasks_esperando) {
+    if (task->qtde_tasks_esperando >= task->tamanho_fila_tasks_esperando) {
 
-        int nova_capacidade =
-            task->tamanho_fila_tasks_esperando + 10;
+        int novo_tamanho = task->tamanho_fila_tasks_esperando + 10;
 
-        struct task_t **novo_vetor = realloc(
-            task->tasks_esperando,
-            nova_capacidade * sizeof(struct task_t *)
-        );
+        struct task_t **novo_vetor = realloc(task->tasks_esperando,novo_tamanho * sizeof(struct task_t *));
 
-        if (novo_vetor == NULL)
-            return ERROR;
+        if (novo_vetor == NULL) return ERROR;
 
         task->tasks_esperando = novo_vetor;
-        task->tamanho_fila_tasks_esperando = nova_capacidade;
+        task->tamanho_fila_tasks_esperando = novo_tamanho;
     }
 
     task->tasks_esperando[task->qtde_tasks_esperando] = task_atual;

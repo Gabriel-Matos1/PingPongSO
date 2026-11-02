@@ -62,8 +62,26 @@ int map_destroy(struct map_t *map){
 // Retorno: ID atribuído ao objeto ou -1 (erro).
 int map_put(struct map_t *map, void *object)
 {
-    if (!map || !map->objetos || !object)
+    if (map == NULL || map->objetos == NULL || object == NULL)
         return -1;
+
+    if (map->quantidade >= map->size) {
+        int novo_tamanho = map->size + 10;
+
+        void **novos_objetos = realloc(
+            map->objetos,
+            novo_tamanho * sizeof(void *)
+        );
+
+        if (novos_objetos == NULL)
+            return -1;
+
+        for (int i = map->size; i < novo_tamanho; i++)
+            novos_objetos[i] = NULL;
+
+        map->objetos = novos_objetos;
+        map->size = novo_tamanho;
+    }
 
     for (int i = 0; i < map->size; i++) {
         if (map->objetos[i] == NULL) {
