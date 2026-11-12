@@ -139,7 +139,7 @@ void  dispatcher(){
 
     task_user = task_create("user_main", user_main, NULL);
  //   int count= 0;
-
+      
     while ( fila_prontas->size > 0 || fila_suspensas->size >0 ){
         verificar_tasks_dormindo();
         if (fila_prontas->size == 0) {
@@ -170,7 +170,10 @@ void  dispatcher(){
             default:
                 break;
             }
+
         }
+
+
     //     count= time();
   //      if(count % 100 == 0){
             
@@ -178,6 +181,8 @@ void  dispatcher(){
 
 
     }
+
+    
     task_destroy(task_user);
 
     task_kernel.tempo_processamento += time() - task_kernel.tempo_temp_cpu;
@@ -209,13 +214,17 @@ void task_suspend(struct queue_t *queue)
 // acorda uma tarefa: retira-a da fila onde se encontra suspensa (se estiver
 // em uma fila), muda seu status para PRONTA e a insere na fila de prontas,
 // para retomar (ou iniciar) sua execução.
-void task_awake(struct task_t *task){
-    
+void task_awake(struct task_t *task) {
+
+    if (!task || task->status != TASK_SUSPENSA)
+        return;
+
     queue_del(fila_suspensas, task);
+
     task->status = TASK_PRONTA;
-    task->acordar_quando=0;
-    task->dormindo=0;
+    task->acordar_quando = 0;
+    task->dormindo = 0;
+
     queue_add(fila_prontas, task);
-    return;
 }
 

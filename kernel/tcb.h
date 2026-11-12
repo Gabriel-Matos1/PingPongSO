@@ -23,7 +23,10 @@ extern struct task_t *task_atual;
 extern struct queue_t* fila_prontas;
 extern struct queue_t* fila_suspensas;
 
-//plantas que vamos passar a ensinar os GIS a atender: Palmela, Pune e Bentley.  
+
+
+
+
 
 typedef struct queue_t {
     int iterador;

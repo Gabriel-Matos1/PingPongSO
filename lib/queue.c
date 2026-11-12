@@ -67,8 +67,7 @@ int queue_add(struct queue_t *queue, void *item){
     if(queue->size >= queue->capacidade){
         int nova_capacidade = queue->capacidade * 2;
 
-        void **temp = realloc(queue->items,
-                            nova_capacidade * sizeof(void *));
+        void **temp = realloc(queue->items, nova_capacidade * sizeof(void *));
 
         if (!temp)
             return ERROR;
@@ -76,7 +75,7 @@ int queue_add(struct queue_t *queue, void *item){
         queue->items = temp;
         queue->capacidade = nova_capacidade;
 
-    }
+    } 
     queue->items[queue->size] = item;
     queue->size++;
 
