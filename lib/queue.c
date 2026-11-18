@@ -8,15 +8,15 @@
 
 // Implementação do TAD fila genérica
 #include <stdio.h>
-#include <stdlib.h>
 #include "queue.h"
+#include "memory.h"
 
 
 typedef struct queue_t {
     int iterador;
     void **items;
     int size;
-    int capacidade; 
+    int capacidade;
 } queue_t;
 
 
@@ -24,19 +24,22 @@ typedef struct queue_t {
 // Retorno: ponteiro p/ a nova fila
 //          NULL se houver erro
 struct queue_t *queue_create(){
-    struct queue_t *novo = (queue_t*) malloc(sizeof(queue_t));
+    struct queue_t *novo = (queue_t*) mem_alloc(sizeof(queue_t));
 
     if(!novo){
         return NULL;
     }
-    novo->iterador =-1;
-    novo->size=0;
+
+    novo->iterador = -1;
+    novo->size = 0;
     novo->capacidade = 4;
-    novo->items = (void**) malloc(novo->capacidade*sizeof(void*));
+    novo->items = (void**) mem_alloc(novo->capacidade * sizeof(void*));
+
     if(!novo->items){
-        free(novo);
+        mem_free(novo);
         return NULL;
     }
+
     return novo;
 }
 
@@ -49,8 +52,9 @@ int queue_destroy(struct queue_t *queue){
     if(!queue){
         return ERROR;
     }
-    free(queue->items);
-    free(queue);
+
+    mem_free(queue->items);
+    mem_free(queue);
 
     return NOERROR;
 }
@@ -67,15 +71,20 @@ int queue_add(struct queue_t *queue, void *item){
     if(queue->size >= queue->capacidade){
         int nova_capacidade = queue->capacidade * 2;
 
-        void **temp = realloc(queue->items, nova_capacidade * sizeof(void *));
+        void **temp = (void**) mem_alloc(nova_capacidade * sizeof(void*));
 
         if (!temp)
             return ERROR;
 
+        for(int i = 0; i < queue->size; i++)
+            temp[i] = queue->items[i];
+
+        mem_free(queue->items);
+
         queue->items = temp;
         queue->capacidade = nova_capacidade;
+    }
 
-    } 
     queue->items[queue->size] = item;
     queue->size++;
 
@@ -123,11 +132,12 @@ bool queue_has(struct queue_t *queue, void *item){
         return false;
     }
 
-    for(int i=0; i<queue->size; i++){
+    for(int i = 0; i < queue->size; i++){
         if(queue->items[i] == item){
             return true;
         }
     }
+
     return false;
 }
 
@@ -135,7 +145,7 @@ bool queue_has(struct queue_t *queue, void *item){
 // Retorno: número de itens na fila (>= 0)
 //          ERROR se a fila não existir
 int queue_size(struct queue_t *queue){
-    if(!queue ){
+    if(!queue){
         return ERROR;
     }
 
@@ -149,7 +159,8 @@ void *queue_head(struct queue_t *queue){
     if(!queue || queue->size == 0){
         return NULL;
     }
-    queue->iterador =0;
+
+    queue->iterador = 0;
     return queue->items[queue->iterador];
 }
 
@@ -175,13 +186,13 @@ void *queue_next(struct queue_t *queue)
 //          NULL se a fila estiver vazia ou não existir
 //          NULL se o iterador passou do fim da fila
 void *queue_item(struct queue_t *queue){
-    if(!queue ){
-        return NULL;
-    }
-    if(queue->size == 0 || queue->iterador < 0|| queue->iterador >= (queue->size)){
+    if(!queue){
         return NULL;
     }
 
+    if(queue->size == 0 || queue->iterador < 0 || queue->iterador >= queue->size){
+        return NULL;
+    }
 
     return queue->items[queue->iterador];
 }
@@ -194,27 +205,27 @@ void *queue_item(struct queue_t *queue){
 // Frutas: undef   se queue == NULL
 // Frutas: [ undef undef undef ] (3 items)  se func == NULL
 void queue_print(char *name, struct queue_t *queue, void(func)(void *)){
-   if (!queue) {
+    if (!queue) {
         printf("%s: undef\n", name);
         return;
     } else if(!name){
         printf("\nundef\n");
-        
-    }else{
+    } else {
         printf("%s: [", name);
+
         if(func == NULL){
-            for(int i=0; i<queue->size;i++){
+            for(int i = 0; i < queue->size; i++){
                 printf(" undef");
             }
-        }else{
-            for(int i=0; i<queue->size;i++){
+        } else {
+            for(int i = 0; i < queue->size; i++){
                 printf(" ");
                 func(queue->items[i]);
-                
             }
         }
+
         printf(" ] (%d items)\n", queue->size);
     }
-    
+
     return;
 }

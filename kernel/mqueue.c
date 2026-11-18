@@ -1,3 +1,4 @@
+// GRR20240011 GABRIEL OLIVEIRA DE MATOS
 // PingPongOS - PingPong Operating System
 
 // Este arquivo PODE/DEVE ser alterado.
@@ -12,6 +13,7 @@
 #include "lib/queue.h"
 #include "lib/map.h"
 #include "semaphore.h"
+#include "memory.h"
 
 struct map_t *map_queues;
 
@@ -51,7 +53,7 @@ void mqueue_term()
             void *mensagem = queue_head(mqueue->messages);
 
             queue_del(mqueue->messages, mensagem);
-            free(mensagem);
+            mem_free(mensagem);
         }
 
         sem_destroy(mqueue->mutex);
@@ -61,7 +63,7 @@ void mqueue_term()
         sem_destroy(mqueue->mensagens);
         queue_destroy(mqueue->messages);
 
-        free(mqueue);
+       mem_free(mqueue);
     }
 
     map_destroy(map_queues);
@@ -75,7 +77,7 @@ int mqueue_create(int max_msgs, int msg_size){
     if (max_msgs <= 0 || msg_size <= 0 || !map_queues)
         return ERROR;
 
-    struct mqueue_t *mqueue = malloc(sizeof(struct mqueue_t));
+    struct mqueue_t *mqueue = mem_alloc(sizeof(struct mqueue_t));
 
     if (!mqueue)
         return ERROR;
@@ -87,7 +89,7 @@ int mqueue_create(int max_msgs, int msg_size){
     mqueue->messages = queue_create();
 
     if (!mqueue->messages) {
-        free(mqueue);
+       mem_free(mqueue);
         return ERROR;
     }
     mqueue->mutex = sem_create(1);
@@ -106,7 +108,7 @@ int mqueue_create(int max_msgs, int msg_size){
             sem_destroy(mqueue->mensagens);
         }
         queue_destroy(mqueue->messages);
-        free(mqueue);
+       mem_free(mqueue);
 
         return ERROR;
     }
@@ -119,7 +121,7 @@ int mqueue_create(int max_msgs, int msg_size){
         sem_destroy(mqueue->mensagens);
 
         queue_destroy(mqueue->messages);
-        free(mqueue);
+       mem_free(mqueue);
 
         return ERROR;
     }
@@ -148,7 +150,7 @@ int mqueue_destroy(int mqueue_id)
         void *mensagem = queue_head(mqueue->messages);
 
         queue_del(mqueue->messages, mensagem);
-        free(mensagem);
+       mem_free(mensagem);
     }
 
     sem_up(mqueue->mutex);
@@ -161,7 +163,7 @@ int mqueue_destroy(int mqueue_id)
 
     map_del(map_queues, mqueue_id);
 
-    free(mqueue);
+   mem_free(mqueue);
 
     return NOERROR;
 }
@@ -192,7 +194,7 @@ int mqueue_send(int mqueue_id, void *msg)
         return ERROR;
     }
 
-    void *copia = malloc(mqueue->msg_size);
+    void *copia = mem_alloc(mqueue->msg_size);
 
     if (!copia) {
         sem_up(mqueue->mutex);
@@ -243,7 +245,7 @@ int mqueue_recv(int mqueue_id, void *msg)
     memcpy(msg, mensagem, mqueue->msg_size);
 
     queue_del(mqueue->messages, mensagem);
-    free(mensagem);
+    mem_free(mensagem);
     sem_up(mqueue->mutex);
     sem_up(mqueue->vagas);
 

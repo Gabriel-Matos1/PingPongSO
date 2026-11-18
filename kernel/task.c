@@ -14,6 +14,7 @@
 #include "dispatcher.h"
 #include <stdlib.h>
 #include "time.h"
+#include "memory.h"
 struct task_t task_kernel;
 struct task_t *task_atual;
 #define STACK_SIZE 64 * 1024
@@ -59,7 +60,7 @@ struct task_t *task_create(char *name, void (*entry)(void *), void *arg)
 {
     if (entry == NULL) return NULL;
 
-    struct task_t *task = malloc(sizeof(struct task_t));
+    struct task_t *task = mem_alloc(sizeof(struct task_t));
 
     if (task == NULL) return NULL;
 
@@ -85,27 +86,27 @@ struct task_t *task_create(char *name, void (*entry)(void *), void *arg)
     task->qtde_tasks_esperando = 0;
     task->tamanho_fila_tasks_esperando = 10;
 
-    task->tasks_esperando = malloc(
+    task->tasks_esperando = mem_alloc(
         task->tamanho_fila_tasks_esperando * sizeof(struct task_t *)
     );
 
     if (task->tasks_esperando == NULL) {
-        free(task);
+        mem_free(task);
         return NULL;
     }
 
     if (posix_memalign(&task->context.stack, 16, task->context.size) != 0) {
-        free(task->tasks_esperando);
-        free(task);
+        mem_free(task->tasks_esperando);
+        mem_free(task);
         return NULL;
     }
 
     int resultado_ctx = ctx_create(&task->context,entry,arg,task->context.stack,task->context.size);
 
     if (resultado_ctx == ERROR) {
-        free(task->context.stack);
-        free(task->tasks_esperando);
-        free(task);
+        mem_free(task->context.stack);
+        mem_free(task->tasks_esperando);
+        mem_free(task);
         return NULL;
     }
 
@@ -128,9 +129,9 @@ int task_destroy(struct task_t *task)
     if (task->status != TASK_FINALIZADA)
         return ERROR;
 
-    free(task->tasks_esperando);
-    free(task->context.stack);
-    free(task);
+    mem_free(task->tasks_esperando);
+    mem_free(task->context.stack);
+    mem_free(task);
 
     return NOERROR;
 }

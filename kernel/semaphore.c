@@ -12,6 +12,7 @@
 #include "dispatcher.h"
 #include "task.h"
 #include <stdlib.h>
+#include "memory.h"
 
 struct semaphore_t{
     int id;
@@ -45,7 +46,7 @@ void sem_term()
 
         if (sem != NULL) {
             queue_destroy(sem->fila);
-            free(sem);
+            mem_free(sem);
         }
     }
 
@@ -79,7 +80,7 @@ int sem_create(int value)
     if (value < 0 || map_semaforos == NULL)
         return ERROR;
 
-    struct semaphore_t *sem = malloc(sizeof(struct semaphore_t));
+    struct semaphore_t *sem = mem_alloc(sizeof(struct semaphore_t));
 
     if (sem == NULL)
         return ERROR;
@@ -89,7 +90,7 @@ int sem_create(int value)
     sem->fila = queue_create();
 
     if (sem->fila == NULL) {
-        free(sem);
+        mem_free(sem);
         return ERROR;
     }
 
@@ -97,7 +98,7 @@ int sem_create(int value)
 
     if (sem->id < 0) {
         queue_destroy(sem->fila);
-        free(sem);
+        mem_free(sem);
         return ERROR;
     }
 
@@ -142,7 +143,7 @@ int sem_destroy(int sem_id)
 
     spin_unlock(&sem->spin);
 
-    free(sem);
+    mem_free(sem);
 
     return NOERROR;
 }
